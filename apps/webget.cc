@@ -3,7 +3,8 @@
 
 #include <cstdlib>
 #include <iostream>
-
+#include<string>
+#include<vector>
 using namespace std;
 
 void get_URL(const string &host, const string &path) {
@@ -16,9 +17,37 @@ void get_URL(const string &host, const string &path) {
     // Then you'll need to print out everything the server sends back,
     // (not just one call to read() -- everything) until you reach
     // the "eof" (end of file).
-
-    cerr << "Function called: get_URL(" << host << ", " << path << ").\n";
-    cerr << "Warning: get_URL() has not been implemented yet.\n";
+	TCPSocket tcp;
+	Address destination(host,"http");
+	tcp.connect(destination);
+	string requestline;
+	vector<string> headerlines;
+	requestline="GET ";
+	requestline.append(path);
+	requestline+=" ";
+	requestline+="HTTP/1.1\r\n";
+	string host_header="Host: cs144.keithw.org\r\n";
+	string Connection="Connection: close\r\n";
+	headerlines.push_back(host_header);
+	headerlines.push_back(Connection);
+//edit the http message here
+	string message;
+	message.append(requestline);
+	for(string cur:headerlines){
+		message.append(cur);
+	}
+	message.append("\r\n");
+//send the message
+	tcp.write(message,true);
+	string outpin;
+	do{
+		tcp.read(outpin,100);
+		if(outpin.size()){
+			cout<<outpin;
+		}
+	}while(outpin.size());
+	tcp.close();
+    
 }
 
 int main(int argc, char *argv[]) {
