@@ -18,7 +18,8 @@ class StreamReassembler {
     std::map<int,char>unassemble;
     size_t unassemblesize;
     size_t _capacity;    //!< The maximum number of bytes
-    int _end_index;
+    size_t _end_index;
+  public:
     size_t next_index;
  protected:
    void effectinsert(const std:: string&data,size_t  index,size_t&begin_index);
@@ -27,7 +28,9 @@ class StreamReassembler {
     //! \note This capacity limits both the bytes that have been reassembled,
     //! and those that have not yet been reassembled.
     StreamReassembler(const size_t capacity);
-
+    size_t end_index(){
+	    return _end_index;
+    }
     //! \brief Receive a substring and write any newly contiguous bytes into the stream.
     //!
     //! The StreamReassembler will stay within the memory limits of the `capacity`.

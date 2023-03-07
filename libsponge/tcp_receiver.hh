@@ -19,7 +19,8 @@ class TCPReceiver {
 
     //! The maximum number of bytes we'll store.
     size_t _capacity;
-
+    uint32_t _isn=0;
+    int state=0;// 0:syn 1:process 2:fin
   public:
     //! \brief Construct a TCP receiver
     //!
