@@ -15,17 +15,59 @@
 //! segments, keeps track of which segments are still in-flight,
 //! maintains the Retransmission Timer, and retransmits in-flight
 //! segments if the retransmission timer expires.
+//
+class Timer{
+	public:
+		size_t acc=0;
+		size_t rto=0;
+		bool run=false;
+		bool tick(size_t delta){
+		  if(run==false)return false;
+		  acc+=delta;
+		 if(acc>=rto){
+			run=0;
+			acc=0;
+			rto=0;
+			return true;
+		 }else{
+			return false;
+		 } 
+	       }
+	       void start(size_t _rto){
+			run=1;
+			rto=_rto;	
+				
+	       }
+	       bool running(){
+			return run;
+	       }
+	       void stop(){
+                        if(run==true){
+				run=false;
+                                rto=0;
+				acc=0;
+			}
+	       }
+
+};
 class TCPSender {
   private:
     //! our initial sequence number, the number for our SYN.
     WrappingInt32 _isn;
-
+    size_t acked_index=0;
+    size_t sent_index=0;
+    int closed=0;
+    size_t end_index=1;
+    size_t window_size=1;
+    unsigned int cnt=0;
+    Timer timer;
     //! outbound queue of segments that the TCPSender wants sent
     std::queue<TCPSegment> _segments_out{};
-
+    std::deque<TCPSegment>_pending_segs{};
     //! retransmission timer for the connection
     unsigned int _initial_retransmission_timeout;
-
+    size_t rto;
+    int strive=0;
     //! outgoing stream of bytes that have not yet been sent
     ByteStream _stream;
 
@@ -82,10 +124,10 @@ class TCPSender {
     //!@{
 
     //! \brief absolute seqno for the next byte to be sent
-    uint64_t next_seqno_absolute() const { return _next_seqno; }
+    uint64_t next_seqno_absolute() const { return sent_index; }
 
     //! \brief relative seqno for the next byte to be sent
-    WrappingInt32 next_seqno() const { return wrap(_next_seqno, _isn); }
+    WrappingInt32 next_seqno() const { return wrap(sent_index, _isn); }
     //!@}
 };
 
