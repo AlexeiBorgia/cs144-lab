@@ -21,6 +21,7 @@ int main() {
             uint16_t retx_timeout = uniform_int_distribution<uint16_t>{10, 10000}(rd);
             cfg.fixed_isn = isn;
             cfg.rt_timeout = retx_timeout;
+
             TCPSenderTestHarness test{"Retx SYN twice at the right times, then ack", cfg};
             test.execute(ExpectSegment{}.with_no_flags().with_syn(true).with_payload_size(0).with_seqno(isn));
             test.execute(ExpectNoSegment{});
