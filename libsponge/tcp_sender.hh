@@ -59,6 +59,7 @@ class TCPSender {
     int closed=0;
     size_t end_index=1;
     size_t window_size=1;
+  public:
     unsigned int cnt=0;
     Timer timer;
     //! outbound queue of segments that the TCPSender wants sent

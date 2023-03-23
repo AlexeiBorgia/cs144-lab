@@ -202,7 +202,7 @@ unsigned int TCPSender::consecutive_retransmissions() const { return cnt; }
 
 void TCPSender::send_empty_segment() {
 	TCPSegment v;
-	v.header().seqno=wrap(acked_index,_isn);
+	v.header().seqno=wrap(sent_index,_isn);
 	v.header().syn=0;
 	v.header().fin=0;
 	_segments_out.push(v);

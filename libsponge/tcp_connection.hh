@@ -11,6 +11,10 @@ class TCPConnection {
   private:
     TCPConfig _cfg;
     TCPReceiver _receiver{_cfg.recv_capacity};
+    bool lingertimeout=0;
+    size_t _since_last_received=0;
+   // int rstate;//1:syn recei 2:fin recei 3:error
+    //int sstate;//1:syned 2:in process 3:end_input 4:fin_sent 5:fin_received 6:error
     TCPSender _sender{_cfg.send_capacity, _cfg.rt_timeout, _cfg.fixed_isn};
 
     //! outbound queue of segments that the TCPConnection wants sent
@@ -20,7 +24,10 @@ class TCPConnection {
     //! for 10 * _cfg.rt_timeout milliseconds after both streams have ended,
     //! in case the remote TCPConnection doesn't know we've received its whole stream?
     bool _linger_after_streams_finish{true};
-
+	protected:
+    void abortion();
+    void pop_out();
+    bool stream_active() const;
   public:
     //! \name "Input" interface for the writer
     //!@{
