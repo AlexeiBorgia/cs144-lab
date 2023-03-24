@@ -11,7 +11,7 @@ template <typename... Targs>
 void DUMMY_CODE(Targs &&... /* unused */) {}
 
 using namespace std;
-
+constexpr int debug=0;
 size_t TCPConnection::remaining_outbound_capacity() const { return _sender.stream_in().remaining_capacity(); }
 
 size_t TCPConnection::bytes_in_flight() const { 
@@ -25,9 +25,19 @@ return _since_last_received;
 }
 
 void TCPConnection::segment_received(const TCPSegment &seg) {
-	if(active()==false)return;
+	if(active()==false&&_sender.next_seqno_absolute()>0)return;
+	if(debug==1){
+		cout<<"cesare debug: seg received\n";
+		cout<<"syn: "<<(seg.header().syn==true)<<endl;
+		cout<<"seqno: "<<seg.header().seqno<<endl;
+		cout<<"ack: "<<(seg.header().ack==true)<<endl;
+		if(seg.header().ack==true){
+			cout<<"ackno: "<<seg.header().ackno<<endl;
+		}
+	}
 	_since_last_received=0;
 	if(seg.header().rst==true){//receive abortion
+	
 		_sender.stream_in().set_error();
 		_receiver.stream_out().set_error();
 		return;
@@ -46,14 +56,19 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
 	//for sender
 	if(seg.header().ack==true){//update sender's sending window
 		_sender.ack_received(seg.header().ackno,seg.header().win);
-	}else{//a syn invitation
-		connect();
+		
+	}else{//no ack feedback from peer
+		if(_sender.next_seqno_absolute()==0){
+			connect();//try to connect
+			return;
+		}
 	}
 	//if nothing for sender to send and receiver need to be replied
 	if(_receiver.ackno().has_value()&&_sender.segments_out().empty()&&seg.length_in_sequence_space()){
 		_sender.send_empty_segment();
 	}
-	pop_out();
+		pop_out();
+	
 }
 
 bool TCPConnection::stream_active() const { 
@@ -72,7 +87,7 @@ bool TCPConnection::active() const{
 	return false;
 }
 size_t TCPConnection::write(const string &data) {
-	if(active()==false)return 0;
+	if(active()==false&&_sender.next_seqno_absolute()>0)return 0;
    	ByteStream& outbound=_sender.stream_in();
    	if(outbound.error()==true)return 0;
    	size_t ret=outbound.write(data);
@@ -83,7 +98,7 @@ size_t TCPConnection::write(const string &data) {
 
 //! \param[in] ms_since_last_tick number of milliseconds since the last call to this method
 void TCPConnection::tick(const size_t ms_since_last_tick) { 
-	if(active()==false)return;
+	if(active()==false&&_sender.next_seqno_absolute()>0)return;
 	_since_last_received+=ms_since_last_tick;
 	if(stream_active()==false){//lingering
 		if(_since_last_received>=10*_cfg.rt_timeout)lingertimeout=true;
@@ -128,6 +143,15 @@ void TCPConnection::pop_out(){//check the out_put queue,pop out pending segment 
 			seg.header().ack=false;
 		}
 		seg.header().win=_receiver.window_size();
+		if(debug){
+			cout<<"packet send: \n";
+			cout<<"seqno: "<<seg.header().seqno<<endl;
+			cout<<"syn: "<<(seg.header().syn==true)<<endl;
+			cout<<"ack: "<<(seg.header().ack==true)<<endl;
+			if(seg.header().ack){
+				cout<<"ackno: "<<seg.header().ackno<<endl;
+			}
+		}
 		//push the new segment to the queue
 		_segments_out.push(seg);//send now
 	}

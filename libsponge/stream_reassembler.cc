@@ -12,12 +12,12 @@ void DUMMY_CODE(Targs &&... /* unused */) {}
 
 using namespace std;
 
-StreamReassembler::StreamReassembler(const size_t capacity) : _output(capacity),unassemble(),unassemblesize(0),_capacity(capacity),_end_index(-1),next_index(0){}
+StreamReassembler::StreamReassembler(const size_t capacity) : _output(capacity),unassemble(),unassemblesize(0),_capacity(capacity),_end_index(-1),next_index(0){}  
 
 //! \details This function accepts a substring (aka a segment) of bytes,
 //! possibly out-of-order, from the logical stream, and assembles any newly
 //! contiguous substrings and writes them into the output stream in order.
-void StreamReassembler::effectinsert(const string&data,size_t index,size_t&begin_index){
+/*void StreamReassembler::effectinsert(const string&data,size_t index,size_t&begin_index){
 	int begin=0;
 	if(next_index>=data.size()+index){
 		begin_index=next_index;
@@ -50,12 +50,32 @@ void StreamReassembler::effectinsert(const string&data,size_t index,size_t&begin
 		unassemble.erase(ptr,unassemble.end());
 		unassemblesize-=outpace;
 	}
-}
+}*/
 void StreamReassembler::push_substring(const string &data, const size_t index, const bool eof) {
+    if(_output.input_ended())return;
     if(eof==true){
     	_end_index=index+data.size();
+    	ended=true;
     }
-    size_t begin_index=0;
+    size_t right=next_index+_capacity-_output.buffer_size();
+    if(ended==true) right=(_end_index<right)?_end_index:right;
+    for(size_t i=0;i<data.size();i++){
+    	size_t cur_index=i+index;
+    	if(cur_index>=right)break;
+    	if(cur_index<next_index)continue;
+    	unassemble[cur_index]=data[i];
+    }
+    while(next_index<right&&unassemble.count(next_index)){
+   	string s;
+   	s+=unassemble[next_index];
+    	_output.write(s);
+    	unassemble.erase(next_index);
+    	next_index++;
+    }
+    if(ended==true&&next_index==_end_index&&_output.input_ended()==false){
+    		_output.end_input();
+    }
+    /*size_t begin_index=0;
     effectinsert(data,index,begin_index);
     if(begin_index==next_index){
 	while(next_index!=static_cast<size_t>(_end_index)&&unassemble.count(next_index)==1){
@@ -67,9 +87,11 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
 	}
     }
     if(next_index==static_cast<size_t>(_end_index)&&_output.input_ended()==false)_output.end_input();
+    */
+    
 }
 
 
-size_t StreamReassembler::unassembled_bytes() const { return unassemblesize; }
+size_t StreamReassembler::unassembled_bytes() const { return unassemble.size(); }
 
-bool StreamReassembler::empty() const { return _output.buffer_size()==0&&unassemblesize==0; }
+bool StreamReassembler::empty() const { return _output.buffer_size()==0&&unassemble.size()==0; }
